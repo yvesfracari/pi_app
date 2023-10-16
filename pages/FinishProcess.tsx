@@ -9,7 +9,7 @@ export default function FinishProcess() {
     setPage,
     processToFinish,
     updateProcessProduced,
-    passProcessFromOngoingToWaiting,
+    passProcessFromOnGoingToWaiting,
     finalizeProcess,
   } = useAppContext();
   const [produced, setProduced] = React.useState<Number>(0);
@@ -83,7 +83,7 @@ export default function FinishProcess() {
                 setDialogVisible(true);
                 setOnConfirm(() => () => {
                   updateProcessProduced(processToFinish, produced as number);
-                  passProcessFromOngoingToWaiting(processToFinish);
+                  passProcessFromOnGoingToWaiting(processToFinish);
                   setPage("Home");
                 });
               }}

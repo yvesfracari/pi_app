@@ -10,6 +10,11 @@ export type Process = {
   part: string;
 };
 
+export type Workstation = {
+  id: number;
+  name: string;
+};
+
 interface AppContextType {
   page: string;
   setPage: (page: string) => void;
@@ -20,9 +25,14 @@ interface AppContextType {
   processesWaiting: Process[];
   setProcessesWaiting: (process: Process[]) => void;
   passProcessFromWaitingToOngoing: (process: Process) => void;
-  passProcessFromOngoingToWaiting: (process: Process) => void;
+  passProcessFromOnGoingToWaiting: (process: Process) => void;
   finalizeProcess: (process: Process) => void;
   updateProcessProduced: (process: Process, correctProduced: number) => void;
+  availableWorkstations: Workstation[];
+  updateProcessWorkstation: (
+    process: Process,
+    workstation: Workstation
+  ) => void;
 }
 
 export const AppContext = createContext({} as AppContextType);
@@ -87,6 +97,21 @@ export function AppContextProvider({ children }: PropsWithChildren) {
     },
   ]);
 
+  const availableWorkstations = [
+    {
+      id: 1,
+      name: "Estação 1",
+    },
+    {
+      id: 2,
+      name: "Estação 2",
+    },
+    {
+      id: 3,
+      name: "Estação 3",
+    },
+  ];
+
   function passProcessFromWaitingToOngoing(process: Process) {
     setOngoingProcesses([...onGoingProcesses, process]);
     setProcessesWaiting(
@@ -94,7 +119,7 @@ export function AppContextProvider({ children }: PropsWithChildren) {
     );
   }
 
-  function passProcessFromOngoingToWaiting(process: Process) {
+  function passProcessFromOnGoingToWaiting(process: Process) {
     setProcessesWaiting([...processesWaiting, process]);
     setOngoingProcesses(
       onGoingProcesses.filter((p) => p.order !== process.order)
@@ -120,6 +145,22 @@ export function AppContextProvider({ children }: PropsWithChildren) {
     );
   }
 
+  function updateProcessWorkstation(
+    process: Process,
+    workstation: Workstation
+  ) {
+    const newProcess = {
+      ...process,
+      workstation: workstation.id,
+    };
+    setOngoingProcesses(
+      onGoingProcesses.map((p) => (p.order === process.order ? newProcess : p))
+    );
+    setProcessesWaiting(
+      processesWaiting.map((p) => (p.order === process.order ? newProcess : p))
+    );
+  }
+
   return (
     <AppContext.Provider
       value={{
@@ -132,9 +173,11 @@ export function AppContextProvider({ children }: PropsWithChildren) {
         processesWaiting,
         setProcessesWaiting,
         passProcessFromWaitingToOngoing,
-        passProcessFromOngoingToWaiting,
+        passProcessFromOnGoingToWaiting,
         finalizeProcess,
         updateProcessProduced,
+        availableWorkstations,
+        updateProcessWorkstation,
       }}
     >
       {children}
