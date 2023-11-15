@@ -9,9 +9,11 @@ export default function StartProcess() {
   const {
     processesWaiting,
     availableWorkstations,
+    updateAvailableWorkstations,
     passProcessFromWaitingToOngoing,
     updateProcessWorkstation,
     setPage,
+    updateWaitingProcess,
   } = useAppContext();
   const [processName, setProcessName] = useState<string | null>(null);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
@@ -29,6 +31,9 @@ export default function StartProcess() {
       }
     }
   }, [processName, processesWaiting]);
+
+  useEffect(updateAvailableWorkstations, []);
+  useEffect(updateWaitingProcess, []);
 
   useEffect(() => {
     if (workstationName) {
@@ -49,8 +54,11 @@ export default function StartProcess() {
         onConfirm={() => {
           setConfirmDialogOpen(false);
           if (selectedProcess && workstation) {
-            updateProcessWorkstation(selectedProcess, workstation);
-            passProcessFromWaitingToOngoing(selectedProcess);
+            const updatedProcess = updateProcessWorkstation(
+              selectedProcess,
+              workstation
+            );
+            passProcessFromWaitingToOngoing(updatedProcess);
             setPage("Home");
           }
         }}
@@ -76,7 +84,16 @@ export default function StartProcess() {
           />
         </View>
         <View style={{ padding: 5 }}>
-          <Button icon={<Icon name="replay" size={20} color="white" />} />
+          <Button
+            icon={
+              <Icon
+                name="replay"
+                size={20}
+                color="white"
+                onPress={updateAvailableWorkstations}
+              />
+            }
+          />
         </View>
       </View>
       <Card.Title h4>Ordem de serviço</Card.Title>

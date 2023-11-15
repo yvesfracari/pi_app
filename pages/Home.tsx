@@ -2,9 +2,15 @@ import { View, Image } from "react-native";
 import { Button, Card, Icon, Text } from "@rneui/base";
 import ProcessStatus from "../components/ProcessStatus";
 import { useAppContext } from "../Context";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const { onGoingProcesses, setPage } = useAppContext();
+  const { onGoingProcesses, setPage, updateOnGoingProcess } = useAppContext();
+
+  useEffect(() => {
+    updateOnGoingProcess();
+  }, []);
+
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Image
@@ -35,15 +41,25 @@ export default function Home() {
           >
             Processos em andamento
           </Text>
-          <Button icon={<Icon name="replay" size={15} color="white" />} />
+          <Button
+            icon={
+              <Icon
+                name="replay"
+                size={15}
+                color="white"
+                onPress={updateOnGoingProcess}
+              />
+            }
+          />
         </View>
         <Card.Divider />
         <View>
-          {onGoingProcesses.map((process) => (
-            <View key={process.order}>
-              <ProcessStatus process={process} />
-            </View>
-          ))}
+          {onGoingProcesses &&
+            onGoingProcesses.map((process) => (
+              <View key={process.order}>
+                <ProcessStatus process={process} />
+              </View>
+            ))}
         </View>
       </Card>
     </View>

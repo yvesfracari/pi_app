@@ -8,6 +8,7 @@ export type Process = {
   referenceTime: number;
   realTime?: number;
   part: string;
+  status?: string;
 };
 
 export type Workstation = {
@@ -27,13 +28,18 @@ interface AppContextType {
   passProcessFromWaitingToOngoing: (process: Process) => void;
   passProcessFromOnGoingToWaiting: (process: Process) => void;
   finalizeProcess: (process: Process) => void;
-  updateProcessProduced: (process: Process, correctProduced: number) => void;
+  updateProcessProduced: (process: Process, correctProduced: number) => Process;
   availableWorkstations: Workstation[];
   updateProcessWorkstation: (
     process: Process,
     workstation: Workstation
-  ) => void;
+  ) => Process;
+  updateOnGoingProcess: () => void;
+  updateAvailableWorkstations: () => void;
+  updateWaitingProcess: () => void;
 }
+
+export const serverURL = "http://192.168.0.7:8000";
 
 export const AppContext = createContext({} as AppContextType);
 
@@ -41,124 +47,116 @@ export const AppContext = createContext({} as AppContextType);
 export function AppContextProvider({ children }: PropsWithChildren) {
   const [page, setPage] = useState("Home");
   const [processToFinish, setProcessToFinish] = useState<Process | null>(null);
-  const [onGoingProcesses, setOngoingProcesses] = useState<Process[]>([
-    {
-      order: "ORD-0001",
-      produced: 100,
-      total: 1000,
-      workstation: 1,
-      realTime: 20,
-      referenceTime: 30,
-      part: "PLC-0001",
-    },
-    {
-      order: "ORD-0002",
-      produced: 300,
-      total: 500,
-      workstation: 2,
-      realTime: 30,
-      referenceTime: 30,
-      part: "PLC-0212",
-    },
-    {
-      order: "ORD-0003",
-      produced: 200,
-      total: 500,
-      workstation: 3,
-      realTime: 50,
-      referenceTime: 20,
-      part: "PLC-0212",
-    },
-  ]);
+  const [onGoingProcesses, setOngoingProcesses] = useState<Process[]>([]);
+  const [availableWorkstations, setAvailableWorkstations] = useState<
+    Workstation[]
+  >([]);
 
-  const [processesWaiting, setProcessesWaiting] = useState<Process[]>([
-    {
-      order: "ORD-0004",
-      produced: 0,
-      total: 500,
-      workstation: 3,
-      referenceTime: 20,
-      part: "PLC-0212",
-    },
-    {
-      order: "ORD-0005",
-      produced: 0,
-      total: 500,
-      referenceTime: 20,
-      part: "PLC-0212",
-    },
-    {
-      order: "ORD-0006",
-      produced: 100,
-      total: 500,
-      realTime: 10,
-      referenceTime: 20,
-      part: "PLC-0212",
-    },
-  ]);
+  const updateAvailableWorkstations = () => {
+    fetch(serverURL + "/available_workstations")
+      .then((response) => response.json())
+      .then((response) => {
+        setAvailableWorkstations(
+          response.map((workstation: number) => ({
+            id: workstation,
+            name: `Estação ${workstation}`,
+          }))
+        );
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+  const getOnGoingProcess = () => {
+    return fetch(serverURL + "/producing_orders")
+      .then((response) => response.json())
+      .catch((error) => {
+        console.error(error);
+      });
+  };
 
-  const availableWorkstations = [
-    {
-      id: 1,
-      name: "Estação 1",
-    },
-    {
-      id: 2,
-      name: "Estação 2",
-    },
-    {
-      id: 3,
-      name: "Estação 3",
-    },
-  ];
+  const updateOnGoingProcess = () => {
+    getOnGoingProcess().then((response) => {
+      setOngoingProcesses(response);
+    });
+  };
+
+  const updateWaitingProcess = () => {
+    fetch(serverURL + "/waiting_orders")
+      .then((response) => response.json())
+      .then((response) => {
+        setProcessesWaiting(response);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
+  const [processesWaiting, setProcessesWaiting] = useState<Process[]>([]);
 
   function passProcessFromWaitingToOngoing(process: Process) {
-    setOngoingProcesses([...onGoingProcesses, process]);
-    setProcessesWaiting(
-      processesWaiting.filter((p) => p.order !== process.order)
-    );
+    fetch(serverURL + "/producing_orders", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...process,
+        status: "producing",
+      }),
+    });
   }
 
   function passProcessFromOnGoingToWaiting(process: Process) {
-    setProcessesWaiting([...processesWaiting, process]);
-    setOngoingProcesses(
-      onGoingProcesses.filter((p) => p.order !== process.order)
-    );
+    fetch(serverURL + "/producing_orders", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...process,
+        status: "stopped",
+      }),
+    });
   }
 
   function finalizeProcess(process: Process) {
-    setOngoingProcesses(
-      onGoingProcesses.filter((p) => p.order !== process.order)
-    );
+    fetch(serverURL + "/producing_orders", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...process,
+        status: "finished",
+      }),
+    });
   }
 
-  function updateProcessProduced(process: Process, correctProduced: number) {
+  function updateProcessProduced(
+    process: Process,
+    correctProduced: number
+  ): Process {
     const updatedProcessRealTime =
       ((process.realTime || 0) * process.produced) / correctProduced;
-    const newProcess = {
+    return {
       ...process,
       realTime: updatedProcessRealTime,
       produced: correctProduced,
     };
-    setOngoingProcesses(
-      onGoingProcesses.map((p) => (p.order === process.order ? newProcess : p))
-    );
   }
 
   function updateProcessWorkstation(
     process: Process,
     workstation: Workstation
-  ) {
-    const newProcess = {
+  ): Process {
+    return {
       ...process,
       workstation: workstation.id,
     };
-    setOngoingProcesses(
-      onGoingProcesses.map((p) => (p.order === process.order ? newProcess : p))
-    );
-    setProcessesWaiting(
-      processesWaiting.map((p) => (p.order === process.order ? newProcess : p))
-    );
   }
 
   return (
@@ -178,6 +176,9 @@ export function AppContextProvider({ children }: PropsWithChildren) {
         updateProcessProduced,
         availableWorkstations,
         updateProcessWorkstation,
+        updateOnGoingProcess,
+        updateAvailableWorkstations,
+        updateWaitingProcess,
       }}
     >
       {children}

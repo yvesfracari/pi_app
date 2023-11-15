@@ -63,7 +63,7 @@ export default function FinishProcess() {
             <ListItem.Title>Tempo por peça (segundos)</ListItem.Title>
             <Input
               disabled
-              value={`${timeByPart.toFixed(2)} minutos por peça`}
+              value={`${timeByPart.toFixed(2)} segundos por peça`}
             />
           </ListItem.Content>
         </ListItem>
@@ -82,8 +82,11 @@ export default function FinishProcess() {
               onPress={() => {
                 setDialogVisible(true);
                 setOnConfirm(() => () => {
-                  updateProcessProduced(processToFinish, produced as number);
-                  passProcessFromOnGoingToWaiting(processToFinish);
+                  const processUpdated = updateProcessProduced(
+                    processToFinish,
+                    produced as number
+                  );
+                  passProcessFromOnGoingToWaiting(processUpdated);
                   setPage("Home");
                 });
               }}
@@ -97,8 +100,11 @@ export default function FinishProcess() {
               onPress={() => {
                 setDialogVisible(true);
                 setOnConfirm(() => () => {
-                  updateProcessProduced(processToFinish, produced as number);
-                  finalizeProcess(processToFinish);
+                  const processUpdated = updateProcessProduced(
+                    processToFinish,
+                    produced as number
+                  );
+                  finalizeProcess(processUpdated);
                   setPage("Home");
                 });
               }}
